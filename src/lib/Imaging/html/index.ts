@@ -1,24 +1,24 @@
 // Core rendering
 export { render, clearFontCache } from './render';
 
-// Element creation helpers
+// JSX Components
 export {
-    div,
-    span,
-    text,
-    img,
-    absolute,
-    flex,
-    center,
-    row,
-    column,
-    background,
+    Box,
+    Row,
+    Column,
+    Text,
+    Img,
+    Background,
+    Center,
+    Absolute,
     textOutline
-} from './elements';
+} from './elements.js';
 
 // Types
 export type {
     ElementNode,
+    ElementChild,
+    ElementChildren,
     CSSProperties,
     RenderOptions,
     FlexDirection,

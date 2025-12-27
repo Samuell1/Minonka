@@ -6,12 +6,16 @@ export type { Font } from 'satori';
 // CSS properties supported by satori (subset of React.CSSProperties)
 export type CSSProperties = React.CSSProperties;
 
+// Children type for ElementNode
+export type ElementChild = ElementNode | string | number;
+export type ElementChildren = ElementChild | ElementChild[];
+
 // Element node structure for satori
 export type ElementNode = {
     type: string;
     props: {
         style?: CSSProperties;
-        children?: ElementNode | ElementNode[] | string | number;
+        children?: ElementChildren;
         src?: string;
         width?: number;
         height?: number;

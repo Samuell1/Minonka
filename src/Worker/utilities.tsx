@@ -10,17 +10,8 @@ import { z } from 'zod';
 import { ExtractAssetResult } from './types';
 
 // HTML Imaging imports
-import {
-    render,
-    ElementNode,
-    Color,
-    img,
-    row,
-    column,
-    div,
-    text,
-    textOutline
-} from '$/lib/Imaging/html';
+import { render, Column, Row, Box, Img, Text, textOutline } from '$/lib/Imaging/html';
+import { ElementNode, Color } from '$/lib/Imaging/html/types';
 export { Color } from '$/lib/Imaging/html';
 
 // Check if we're running in a worker environment (not on main server)
@@ -225,9 +216,12 @@ export const createSummonerSpells = async (
         })
     );
 
-    return column(
-        { gap },
-        ...spellAssets.map((asset) => img(asset!, { width: size, height: size }))
+    return (
+        <Column style={{ gap }}>
+            {spellAssets.map((asset) => (
+                <Img src={asset!} width={size} height={size} />
+            ))}
+        </Column>
     );
 };
 
@@ -267,62 +261,71 @@ export const createItems = async (
         )
     );
 
-    const items = itemIds.map((itemId, i) => {
-        const isWard = i === 6;
-        return div(
-            {
-                position: 'relative',
-                width: imageWidth,
-                height: imageWidth
-            },
-            // Background
-            img(itemBackground!, { width: imageWidth, height: imageWidth }),
-            // Item image (if exists)
-            itemAssets[i]
-                ? div(
-                      {
-                          position: 'absolute',
-                          top: imageBorder,
-                          left: imageBorder
-                      },
-                      img(itemAssets[i]!, {
-                          width: imageWidth - imageBorder * 2,
-                          height: imageWidth - imageBorder * 2
-                      })
-                  )
-                : null,
-            // Vision score on ward slot
-            isWard && itemAssets[i]
-                ? div(
-                      {
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: imageWidth,
-                          height: imageWidth,
-                          justifyContent: 'center',
-                          alignItems: 'center'
-                      },
-                      text(
-                          {
-                              fontSize: 30,
-                              color: Color.WHITE,
-                              fontWeight: 700,
-                              ...textOutline()
-                          },
-                          player.visionScore
-                      )
-                  )
-                : null
-        );
-    });
-
-    return row(
-        {
-            gap: imageSpacing,
-            flexDirection: reverse ? 'row-reverse' : 'row'
-        },
-        ...items
+    return (
+        <Row
+            style={{ gap: imageSpacing, flexDirection: reverse ? 'row-reverse' : 'row' }}
+        >
+            {itemIds.map((_, i) => {
+                const isWard = i === 6;
+                return (
+                    <Box
+                        style={{
+                            position: 'relative',
+                            width: imageWidth,
+                            height: imageWidth
+                        }}
+                    >
+                        {/* Background */}
+                        <Img
+                            src={itemBackground!}
+                            width={imageWidth}
+                            height={imageWidth}
+                        />
+                        {/* Item image (if exists) */}
+                        {itemAssets[i] && (
+                            <Box
+                                style={{
+                                    position: 'absolute',
+                                    top: imageBorder,
+                                    left: imageBorder
+                                }}
+                            >
+                                <Img
+                                    src={itemAssets[i]!}
+                                    width={imageWidth - imageBorder * 2}
+                                    height={imageWidth - imageBorder * 2}
+                                />
+                            </Box>
+                        )}
+                        {/* Vision score on ward slot */}
+                        {isWard && itemAssets[i] && (
+                            <Box
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: imageWidth,
+                                    height: imageWidth,
+                                    justifyContent: 'center',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                <Text
+                                    style={{
+                                        fontSize: 30,
+                                        color: Color.WHITE,
+                                        fontWeight: 700,
+                                        ...textOutline()
+                                    }}
+                                >
+                                    {player.visionScore}
+                                </Text>
+                            </Box>
+                        )}
+                    </Box>
+                );
+            })}
+        </Row>
     );
 };
 

@@ -19,8 +19,8 @@ describe('HTML Elements', () => {
         it('should create a div element with display: flex', () => {
             const element = div({ width: 100 });
             expect(element.type).toBe('div');
-            expect(element.props.style.display).toBe('flex');
-            expect(element.props.style.width).toBe(100);
+            expect(element.props.style!.display).toBe('flex');
+            expect(element.props.style!.width).toBe(100);
         });
 
         it('should filter null children', () => {
@@ -34,7 +34,7 @@ describe('HTML Elements', () => {
             const element = span({ fontSize: 16 }, 'Hello');
             expect(element.type).toBe('span');
             expect(element.props.children).toBe('Hello');
-            expect(element.props.style.fontSize).toBe(16);
+            expect(element.props.style!.fontSize).toBe(16);
         });
 
         it('should convert numbers to strings', () => {
@@ -62,7 +62,7 @@ describe('HTML Elements', () => {
                 { text: 'World', color: Color.RED }
             ]);
             expect(element.type).toBe('div');
-            expect(element.props.style.flexDirection).toBe('row');
+            expect(element.props.style!.flexDirection).toBe('row');
             expect(element.props.children).toHaveLength(2);
         });
     });
@@ -91,33 +91,33 @@ describe('HTML Elements', () => {
     describe('row', () => {
         it('should create a flex row', () => {
             const element = row({ gap: 10 }, 'item1', 'item2');
-            expect(element.props.style.flexDirection).toBe('row');
-            expect(element.props.style.gap).toBe(10);
+            expect(element.props.style!.flexDirection).toBe('row');
+            expect(element.props.style!.gap).toBe(10);
         });
     });
 
     describe('column', () => {
         it('should create a flex column', () => {
             const element = column({ gap: 5 }, 'item1', 'item2');
-            expect(element.props.style.flexDirection).toBe('column');
-            expect(element.props.style.gap).toBe(5);
+            expect(element.props.style!.flexDirection).toBe('column');
+            expect(element.props.style!.gap).toBe(5);
         });
     });
 
     describe('center', () => {
         it('should create a centered container', () => {
             const element = center({ width: 200 }, 'centered content');
-            expect(element.props.style.justifyContent).toBe('center');
-            expect(element.props.style.alignItems).toBe('center');
+            expect(element.props.style!.justifyContent).toBe('center');
+            expect(element.props.style!.alignItems).toBe('center');
         });
     });
 
     describe('absolute', () => {
         it('should create an absolute positioned element', () => {
             const element = absolute({ top: 10, left: 20 }, 'content');
-            expect(element.props.style.position).toBe('absolute');
-            expect(element.props.style.top).toBe(10);
-            expect(element.props.style.left).toBe(20);
+            expect(element.props.style!.position).toBe('absolute');
+            expect(element.props.style!.top).toBe(10);
+            expect(element.props.style!.left).toBe(20);
         });
     });
 
@@ -125,11 +125,11 @@ describe('HTML Elements', () => {
         it('should create a container with background image', () => {
             const buffer = Buffer.from('image data');
             const element = background(buffer, { width: 800, height: 600 }, 'content');
-            expect(element.props.style.position).toBe('relative');
-            expect(element.props.style.backgroundSize).toBe('cover');
-            expect(element.props.style.backgroundPosition).toBe('center');
-            expect(element.props.style.width).toBe(800);
-            expect(element.props.style.height).toBe(600);
+            expect(element.props.style!.position).toBe('relative');
+            expect(element.props.style!.backgroundSize).toBe('cover');
+            expect(element.props.style!.backgroundPosition).toBe('center');
+            expect(element.props.style!.width).toBe(800);
+            expect(element.props.style!.height).toBe(600);
         });
     });
 
@@ -853,7 +853,7 @@ describe('Layout calculations', () => {
             div({ width: WIDTH - PADDING * 2, height: FOOTER_HEIGHT })
         );
 
-        expect(element.props.style.height).toBe(HEIGHT);
-        expect(element.props.style.padding).toBe(PADDING);
+        expect(element.props.style!.height).toBe(HEIGHT);
+        expect(element.props.style!.padding).toBe(PADDING);
     });
 });

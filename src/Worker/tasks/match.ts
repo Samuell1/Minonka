@@ -265,6 +265,19 @@ export default async (data: MatchData) => {
         );
     };
 
+    // Layout constants
+    const PADDING = 30;
+    const HEADER_HEIGHT = 180;
+    const FOOTER_HEIGHT = 50;
+    const TEAMS_HEIGHT = HEIGHT - PADDING * 2 - HEADER_HEIGHT - FOOTER_HEIGHT;
+    const TEAM_WIDTH = (WIDTH - PADDING * 2 - 30) / 2;
+    const PLAYER_ROW_GAP = 8;
+    const CHAMPION_WIDTH = 70;
+    const NAME_WIDTH = 160;
+    const RUNES_WIDTH = 78;
+    const ITEMS_WIDTH =
+        TEAM_WIDTH - PLAYER_ROW_GAP * 3 - CHAMPION_WIDTH - NAME_WIDTH - RUNES_WIDTH;
+
     // Render player row
     const renderPlayer = (
         assets: Awaited<ReturnType<typeof loadPlayerAssets>>,
@@ -283,20 +296,25 @@ export default async (data: MatchData) => {
 
         return row(
             {
+                width: TEAM_WIDTH,
                 alignItems: 'center',
                 flexDirection: isRightTeam ? 'row-reverse' : 'row',
-                gap: 8,
+                gap: PLAYER_ROW_GAP,
                 height: 95
             },
             // Champion + Level
             div(
-                { position: 'relative', width: 70, height: 90 },
-                img(championImg!, { width: 70, height: 70, borderRadius: 8 }),
+                { position: 'relative', width: CHAMPION_WIDTH, height: 90 },
+                img(championImg!, {
+                    width: CHAMPION_WIDTH,
+                    height: CHAMPION_WIDTH,
+                    borderRadius: 8
+                }),
                 div(
                     {
                         position: 'absolute',
                         bottom: 0,
-                        width: 70,
+                        width: CHAMPION_WIDTH,
                         justifyContent: 'center'
                     },
                     text(
@@ -313,7 +331,7 @@ export default async (data: MatchData) => {
             // Name + KDA
             column(
                 {
-                    width: 160,
+                    width: NAME_WIDTH,
                     alignItems: isRightTeam ? 'flex-end' : 'flex-start'
                 },
                 text(
@@ -331,7 +349,7 @@ export default async (data: MatchData) => {
             ),
             // Runes + Summs
             column(
-                { gap: 3 },
+                { width: RUNES_WIDTH, gap: 3 },
                 row(
                     { gap: 3 },
                     img(primaryRuneImg!, { width: 40, height: 40 }),
@@ -345,7 +363,7 @@ export default async (data: MatchData) => {
             ),
             // Items + Stats
             column(
-                { gap: 3, flex: 1 },
+                { width: ITEMS_WIDTH, gap: 3 },
                 renderItems(assets.itemImgs, player.visionScore, isRightTeam),
                 row(
                     {
@@ -404,12 +422,6 @@ export default async (data: MatchData) => {
             )
         );
     };
-
-    // Layout constants
-    const PADDING = 30;
-    const HEADER_HEIGHT = 180;
-    const FOOTER_HEIGHT = 50;
-    const TEAMS_HEIGHT = HEIGHT - PADDING * 2 - HEADER_HEIGHT - FOOTER_HEIGHT;
 
     // Build element
     const element = background(
@@ -482,7 +494,7 @@ export default async (data: MatchData) => {
                 // Team 1
                 column(
                     {
-                        width: (WIDTH - PADDING * 2 - 30) / 2,
+                        width: TEAM_WIDTH,
                         height: TEAMS_HEIGHT,
                         justifyContent: 'space-between'
                     },
@@ -493,7 +505,7 @@ export default async (data: MatchData) => {
                 // Team 2
                 column(
                     {
-                        width: (WIDTH - PADDING * 2 - 30) / 2,
+                        width: TEAM_WIDTH,
                         height: TEAMS_HEIGHT,
                         justifyContent: 'space-between'
                     },

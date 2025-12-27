@@ -200,6 +200,20 @@ export default async (data: CherryMatchData) => {
     const intl = new Intl.NumberFormat('cs-cz');
     const ITEM_SIZE = 38;
     const AUG_SIZE = 32;
+    const TEAM_ROW_WIDTH = (WIDTH - 300) / 2;
+    const TEAM_ICON_WIDTH = 100;
+    const TEAM_GAP = 10;
+    const PLAYERS_COLUMN_WIDTH = TEAM_ROW_WIDTH - TEAM_ICON_WIDTH - TEAM_GAP;
+    const PLAYER_GAP = 6;
+    const CHAMPION_WIDTH = 55;
+    const NAME_WIDTH = 120;
+    const AUGS_SUMMS_WIDTH = AUG_SIZE * 3 + 4 + 4 + 32; // augments + gap + summs
+    const ITEMS_COLUMN_WIDTH =
+        PLAYERS_COLUMN_WIDTH -
+        CHAMPION_WIDTH -
+        NAME_WIDTH -
+        AUGS_SUMMS_WIDTH -
+        PLAYER_GAP * 3;
 
     // Render a player row
     const renderPlayer = (
@@ -213,20 +227,25 @@ export default async (data: CherryMatchData) => {
 
         return row(
             {
+                width: PLAYERS_COLUMN_WIDTH,
                 alignItems: 'center',
                 flexDirection: isRightSide ? 'row-reverse' : 'row',
-                gap: 6,
+                gap: PLAYER_GAP,
                 height: 70
             },
             // Champion + Level
             div(
-                { position: 'relative', width: 55, height: 65 },
-                img(championImg!, { width: 55, height: 55, borderRadius: 6 }),
+                { position: 'relative', width: CHAMPION_WIDTH, height: 65 },
+                img(championImg!, {
+                    width: CHAMPION_WIDTH,
+                    height: CHAMPION_WIDTH,
+                    borderRadius: 6
+                }),
                 div(
                     {
                         position: 'absolute',
                         bottom: 0,
-                        width: 55,
+                        width: CHAMPION_WIDTH,
                         justifyContent: 'center'
                     },
                     text(
@@ -243,7 +262,7 @@ export default async (data: CherryMatchData) => {
             // Name + KDA
             column(
                 {
-                    width: 120,
+                    width: NAME_WIDTH,
                     alignItems: isRightSide ? 'flex-end' : 'flex-start'
                 },
                 text(
@@ -261,7 +280,11 @@ export default async (data: CherryMatchData) => {
             ),
             // Augments (3x2 grid) + Summs
             row(
-                { gap: 4, flexDirection: isRightSide ? 'row-reverse' : 'row' },
+                {
+                    width: AUGS_SUMMS_WIDTH,
+                    gap: 4,
+                    flexDirection: isRightSide ? 'row-reverse' : 'row'
+                },
                 // Augments
                 div(
                     {
@@ -298,7 +321,7 @@ export default async (data: CherryMatchData) => {
             ),
             // Items + Stats
             column(
-                { gap: 2, flex: 1 },
+                { width: ITEMS_COLUMN_WIDTH, gap: 2 },
                 // Items
                 row(
                     { gap: 2, flexDirection: isRightSide ? 'row-reverse' : 'row' },
@@ -384,15 +407,15 @@ export default async (data: CherryMatchData) => {
 
         return row(
             {
-                width: (WIDTH - 300) / 2,
+                width: TEAM_ROW_WIDTH,
                 padding: 10,
-                gap: 10,
+                gap: TEAM_GAP,
                 flexDirection: isRightSide ? 'row-reverse' : 'row'
             },
             // Team icon and info
             column(
                 {
-                    width: 100,
+                    width: TEAM_ICON_WIDTH,
                     alignItems: 'center',
                     gap: 3
                 },
@@ -417,7 +440,7 @@ export default async (data: CherryMatchData) => {
             ),
             // Players
             column(
-                { flex: 1, gap: 5 },
+                { width: PLAYERS_COLUMN_WIDTH, gap: 5 },
                 ...assets.map((asset) =>
                     renderPlayer(asset, isRightSide, asset.player.puuid === data.myPuuid)
                 )

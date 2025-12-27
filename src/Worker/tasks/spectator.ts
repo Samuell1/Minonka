@@ -99,6 +99,11 @@ export default async (data: SpectatorData) => {
     const ICON_SIZE = 80;
     const RUNE_SIZE = 45;
     const SPELL_SIZE = 40;
+    const PLAYER_ROW_WIDTH = WIDTH / 2 - 60;
+    const PLAYER_GAP = 10;
+    const RUNES_COLUMN_WIDTH = RUNE_SIZE + 5 + SPELL_SIZE; // 90
+    const NAME_COLUMN_WIDTH =
+        PLAYER_ROW_WIDTH - ICON_SIZE - RUNES_COLUMN_WIDTH - PLAYER_GAP * 2;
 
     // Render a player row
     const renderPlayer = (
@@ -120,11 +125,11 @@ export default async (data: SpectatorData) => {
 
         return row(
             {
-                width: WIDTH / 2 - 60,
+                width: PLAYER_ROW_WIDTH,
                 height: PLAYER_HEIGHT,
                 alignItems: 'center',
                 flexDirection: isRightTeam ? 'row-reverse' : 'row',
-                gap: 10
+                gap: PLAYER_GAP
             },
             // Champion icon
             img(championImg!, {
@@ -134,7 +139,7 @@ export default async (data: SpectatorData) => {
             }),
             // Runes and Summs
             column(
-                { gap: 5 },
+                { width: RUNES_COLUMN_WIDTH, gap: 5 },
                 row(
                     { gap: 5 },
                     img(primaryRuneImg!, { width: RUNE_SIZE, height: RUNE_SIZE }),
@@ -152,8 +157,8 @@ export default async (data: SpectatorData) => {
             // Player name
             column(
                 {
-                    alignItems: isRightTeam ? 'flex-end' : 'flex-start',
-                    flex: 1
+                    width: NAME_COLUMN_WIDTH,
+                    alignItems: isRightTeam ? 'flex-end' : 'flex-start'
                 },
                 text(
                     {

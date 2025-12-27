@@ -5,17 +5,16 @@ import {
     getChallenges,
     getRiotLanguageFromDiscordLocale
 } from '$/lib/Assets';
-import { Background } from '$/lib/Imaging/Background';
+import { background, center, column, div, img, row, text } from '$/lib/Imaging/html';
+import { Color } from '$/lib/Imaging/html/types';
 import { getLocale, replacePlaceholders } from '$/lib/langs';
 import { Rank } from '$/lib/Riot/types';
-import fs from 'node:fs/promises';
-import { save } from '../utilities';
-import { Image } from '$/lib/Imaging/Image';
-import { Text } from '$/lib/Imaging/Text';
-import { DefaultParameters } from '../types';
-import { Color } from '$/lib/Imaging/types';
 import { ChallengeData } from '$/lib/Riot/schemes';
 import { getHighestRank } from '$/lib/utilities';
+import { saveHtml } from '../utilities';
+import { DefaultParameters } from '../types';
+import fs from 'node:fs/promises';
+import sharp from 'sharp';
 
 export type SummonerData = {
     titleId?: string;
@@ -26,27 +25,8 @@ export type SummonerData = {
     userChallenges: ChallengeData['challenges'];
 } & DefaultParameters;
 
-/*
-
-BANNERS:
-- Default: 1
-- Ranked: 2 -> zjistit rank a pak rank_banner.png
-- Ostatni sedi podle cisla
-- Soul fighter: 4
-- Hall of legends 2024: Unkillable demon king: 9
-- Fracture jinx: 11
-- Radian seprent sett: 12 
-- Welcome to Noxus: 13 
-
-crests:
-- level -> prestige_crest_lvl_XXX.png
-- 2 -> ranked -> rank_base.png
-
-*/
-
 export default async (data: SummonerData) => {
     const banners = await fs.readdir(await getAssetPath(AssetType.BANNER, ''));
-
     const lang = getLocale(data.locale);
 
     let highestRank;
@@ -58,176 +38,59 @@ export default async (data: SummonerData) => {
         highestRank = new Rank(await getHighestRank(data.puuid, data.region, lang));
     }
 
-    let banner: Buffer<ArrayBufferLike>;
-
+    // Load banner
+    let bannerAsset: Buffer<ArrayBufferLike>;
     if (data.banner == 2) {
         const asset = await getAsset(
             AssetType.BANNER,
             highestRank!.getTier().toLowerCase() + '_banner.png'
         );
-        if (!asset) {
-            banner = (await getAsset(AssetType.BANNER, '1_unranked_banner.png'))!;
-        } else {
-            banner = asset;
-        }
+        bannerAsset = asset ?? (await getAsset(AssetType.BANNER, '1_unranked_banner.png'))!;
     } else {
-        const bannerName = banners.find(
-            (b) => b.split('_')[0] === data.banner.toString()
-        )!;
-        if (!bannerName) {
-            banner = (await getAsset(AssetType.BANNER, '1_unranked_banner.png'))!;
-        } else {
-            banner = (await getAsset(AssetType.BANNER, bannerName))!;
-        }
+        const bannerName = banners.find((b) => b.split('_')[0] === data.banner.toString())!;
+        bannerAsset = bannerName
+            ? (await getAsset(AssetType.BANNER, bannerName))!
+            : (await getAsset(AssetType.BANNER, '1_unranked_banner.png'))!;
     }
 
-    ///BACKGROUND
-    const background = new Background(banner);
-    const backgroundSize = await background.getSize();
-    const levelBackground = new Image((await getAsset(AssetType.OTHER, 'level.png'))!, {
-        x: 'center',
-        y: 50
-    });
-    await levelBackground.resize({
-        width: 0.3
-    });
-    background.addElement(levelBackground);
+    // Get banner dimensions
+    const bannerMeta = await sharp(bannerAsset).metadata();
+    const WIDTH = bannerMeta.width ?? 272;
+    const HEIGHT = bannerMeta.height ?? 528;
 
-    //REGION
-    const region = new Text(
-        lang.regions[data.region],
-        {
-            x: 'center',
-            y: 10
-        },
-        {
-            width: 80,
-            height: 20
-        },
-        15,
-        Color.WHITE,
-        'middle'
-    );
-    background.addElement(region);
+    // Load other assets
+    const [levelAsset, profileAsset] = await Promise.all([
+        getAsset(AssetType.OTHER, 'level.png'),
+        getAsset(AssetType.DDRAGON_PROFILEICON, data.profileIconId + '.png')
+    ]);
 
-    ///LEVEL
-    const levelBgSize = await levelBackground.getSize();
-    const text = new Text(
-        data.level.toString(),
-        {
-            x: 'center',
-            y: 50
-        },
-        {
-            width: levelBgSize.width,
-            height: levelBgSize.height
-        },
-        18,
-        Color.WHITE,
-        'middle'
-    );
-    background.addElement(text);
-
-    //PROFILE PICTURE
-    const profileIcon = new Image(
-        (await getAsset(AssetType.DDRAGON_PROFILEICON, data.profileIconId + '.png'))!,
-        {
-            x: 'center',
-            y: 120
-        }
-    );
-
-    await profileIcon.resize({
-        width: 100
-    });
-    await profileIcon.roundify();
-    background.addElement(profileIcon);
-
-    //CREST
+    // Load crest
+    let crestAsset: Buffer | null = null;
+    let showDivision = false;
     if (data.crest === 2 || (data.crest == 1 && data.prestigeCrest == 0)) {
-        const crest = new Image(
-            (await getAsset(
-                AssetType.CREST,
-                `${highestRank!.getTier().toLowerCase()}_base.png`
-            ))!,
-            {
-                x: 'center',
-                y: -40
-            }
+        crestAsset = await getAsset(
+            AssetType.CREST,
+            `${highestRank!.getTier().toLowerCase()}_base.png`
         );
-
-        await crest.resize({
-            width: 0.8
-        });
-
-        background.addElement(crest);
-
-        if (highestRank!.isTiered()) {
-            //render Text in crest for division
-            const division = highestRank!.getRank();
-            const divisionText = new Text(
-                division,
-                {
-                    x: 'center',
-                    y: 100
-                },
-                {
-                    width: 40,
-                    height: 40
-                },
-                15,
-                Color.WHITE,
-                'middle'
-            );
-            background.addElement(divisionText);
-        }
+        showDivision = highestRank!.isTiered();
     } else {
-        const crest = new Image(
-            (await getAsset(
-                AssetType.CREST,
-                `prestige_crest_lvl_${data.prestigeCrest.toString().padStart(3, '0')}.png`
-            ))!,
-            {
-                x: 'center',
-                y: 45
-            }
+        crestAsset = await getAsset(
+            AssetType.CREST,
+            `prestige_crest_lvl_${data.prestigeCrest.toString().padStart(3, '0')}.png`
         );
-        await crest.resize({
-            width: 0.45
-        });
-        background.addElement(crest);
     }
 
-    //name
-    const name = new Text(
-        data.gameName + '#' + data.tagLine,
-        {
-            x: 'center',
-            y: Math.floor(backgroundSize.height / 2) - 15
-        },
-        {
-            width: backgroundSize.width,
-            height: 40
-        },
-        20,
-        Color.WHITE,
-        'middle'
-    );
-    background.addElement(name);
-
-    //title
+    // Load title
+    let titleText: string | null = null;
     if (data.titleId !== undefined && !isNaN(parseInt(data.titleId))) {
         const lolLang = getRiotLanguageFromDiscordLocale(data.locale);
         const challenges = await getChallenges(lolLang);
 
         if (!challenges) {
-            throw new Error(
-                replacePlaceholders(lang.assets.error, lang.assets.challenges)
-            );
+            throw new Error(replacePlaceholders(lang.assets.error, lang.assets.challenges));
         }
 
         const challengeId = parseInt(data.titleId.substring(0, 6));
-
         const challenge = challenges.find((c) => c.id === challengeId);
         if (challenge && challenge.thresholds !== undefined) {
             const reward = Object.values(challenge.thresholds)
@@ -235,67 +98,164 @@ export default async (data: SummonerData) => {
                 ?.rewards?.find(
                     (reward) => reward.category === 'TITLE' && reward.title !== undefined
                 );
-            if (!reward) {
-                throw new Error(
-                    replacePlaceholders(lang.assets.error, lang.assets.challenges)
-                );
+            if (reward) {
+                titleText = reward.title!;
             }
-
-            const text = new Text(
-                reward.title!,
-                {
-                    x: 'center',
-                    y: Math.floor(backgroundSize.height / 2) + 20
-                },
-                {
-                    width: backgroundSize.width,
-                    height: 20
-                },
-                18,
-                Color.GRAY,
-                'middle',
-                'normal'
-            );
-            background.addElement(text);
         }
     }
 
-    if (data.challenges.length > 0) {
-        const center = Math.floor(backgroundSize.width / 2);
-        const challengeWidth = 50;
-        const challengeSpace = 10;
-        const challengeBegin = Math.floor(center - challengeWidth * 1.5 - challengeSpace);
+    // Load challenge images
+    const challengeData = data.challenges
+        .map((challengeId) => {
+            const challenge = data.userChallenges.find((c) => c.challengeId === challengeId);
+            if (!challenge) return null;
+            return { id: challengeId, level: challenge.level };
+        })
+        .filter((ch) => ch !== null);
 
-        const images = await Promise.all(
-            data.challenges
-                .map((challengeId) => {
-                    const challenge = data.userChallenges.find(
-                        (challenge) => challenge.challengeId === challengeId
-                    );
-                    if (!challenge) return undefined;
-                    return `${challengeId}-${challenge.level}.png`;
-                })
-                .filter((ch) => ch !== undefined)
-                .map(
-                    async (challenge) =>
-                        await getAsset(AssetType.DDRAGON_CHALLENGES, challenge)
+    const challengeAssets = await Promise.all(
+        challengeData.map((ch) =>
+            getAsset(AssetType.DDRAGON_CHALLENGES, `${ch.id}-${ch.level}.png`)
+        )
+    );
+
+    // Build element
+    const element = background(
+        bannerAsset,
+        { width: WIDTH, height: HEIGHT },
+        // Main container
+        column(
+            {
+                width: WIDTH,
+                height: HEIGHT,
+                alignItems: 'center',
+                position: 'relative'
+            },
+            // Region
+            text(
+                {
+                    fontSize: 15,
+                    color: Color.WHITE,
+                    fontWeight: 700,
+                    marginTop: 10
+                },
+                lang.regions[data.region]
+            ),
+            // Level badge
+            div(
+                {
+                    position: 'relative',
+                    width: 40,
+                    height: 40,
+                    marginTop: 10,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                },
+                img(levelAsset!, { width: 40, height: 40 }),
+                div(
+                    {
+                        position: 'absolute',
+                        width: 40,
+                        height: 40,
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                    },
+                    text(
+                        { fontSize: 18, color: Color.WHITE, fontWeight: 700 },
+                        data.level.toString()
+                    )
                 )
-                .filter((ch) => ch !== null)
-                .map(async (ch, i) => {
-                    const img = new Image((await ch)!, {
-                        y: Math.floor(backgroundSize.height / 2 + 60),
-                        x: challengeBegin + (challengeWidth + challengeSpace) * i
-                    });
-                    await img.resize({
-                        width: challengeWidth
-                    });
+            ),
+            // Profile with crest container
+            div(
+                {
+                    position: 'relative',
+                    width: 200,
+                    height: 200,
+                    marginTop: 20,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                },
+                // Crest (background)
+                crestAsset
+                    ? div(
+                          {
+                              position: 'absolute',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                          },
+                          img(crestAsset, {
+                              width:
+                                  data.crest === 2 ||
+                                  (data.crest == 1 && data.prestigeCrest == 0)
+                                      ? 200
+                                      : 160,
+                              height:
+                                  data.crest === 2 ||
+                                  (data.crest == 1 && data.prestigeCrest == 0)
+                                      ? 200
+                                      : 160
+                          })
+                      )
+                    : null,
+                // Profile icon
+                img(profileAsset!, {
+                    width: 100,
+                    height: 100,
+                    borderRadius: 50
+                }),
+                // Division text (for ranked crests)
+                showDivision && highestRank
+                    ? div(
+                          {
+                              position: 'absolute',
+                              bottom: 20,
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                          },
+                          text(
+                              { fontSize: 15, color: Color.WHITE, fontWeight: 700 },
+                              highestRank.getRank()
+                          )
+                      )
+                    : null
+            ),
+            // Name
+            text(
+                {
+                    fontSize: 20,
+                    color: Color.WHITE,
+                    fontWeight: 700,
+                    marginTop: 10
+                },
+                data.gameName + '#' + data.tagLine
+            ),
+            // Title
+            titleText
+                ? text(
+                      {
+                          fontSize: 18,
+                          color: Color.GRAY,
+                          fontWeight: 400,
+                          marginTop: 10
+                      },
+                      titleText
+                  )
+                : null,
+            // Challenges
+            challengeAssets.length > 0
+                ? row(
+                      {
+                          gap: 10,
+                          marginTop: 20
+                      },
+                      ...challengeAssets
+                          .filter((asset): asset is Buffer => asset !== null)
+                          .map((asset) => img(asset, { width: 50, height: 50 }))
+                  )
+                : null
+        )
+    );
 
-                    return img;
-                })
-        );
-
-        background.addElements(images);
-    }
-
-    return await save(background);
+    return saveHtml(element, { width: WIDTH, height: HEIGHT });
 };

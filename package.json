@@ -22,6 +22,7 @@
         "prepare": "husky"
     },
     "dependencies": {
+        "@resvg/resvg-js": "^2.6.2",
         "@types/strip-color": "^0.1.2",
         "cli-color": "^2.0.4",
         "discord.js": "^14.17.3",
@@ -32,6 +33,7 @@
         "node-cron": "^3.0.3",
         "node-fetch": "^3.3.2",
         "prettier": "^3.4.2",
+        "satori": "^0.18.3",
         "sharp": "^0.33.5",
         "strip-color": "^0.1.0",
         "ws": "^8.18.0",
@@ -44,6 +46,7 @@
         "@types/express": "5.0.0",
         "@types/node": "^22.13.1",
         "@types/node-cron": "^3.0.11",
+        "@types/react": "^19.2.7",
         "@types/ws": "^8.5.14",
         "eslint": "^9.20.0",
         "eslint-config-prettier": "^10.0.1",

@@ -1,16 +1,14 @@
 import { AssetType, getAsset, getRiotLanguageFromDiscordLocale } from '$/lib/Assets';
-import { Background } from '$/lib/Imaging/Background';
-import { Blank } from '$/lib/Imaging/Blank';
-import { Image } from '$/lib/Imaging/Image';
-import { Text } from '$/lib/Imaging/Text';
-import { Color, Position } from '$/lib/Imaging/types';
+import { background, center, column, div, img, row, text, textOutline } from '$/lib/Imaging/html';
+import { Color } from '$/lib/Imaging/html/types';
+import { ElementNode } from '$/lib/Imaging/html';
 import { getLocale } from '$/lib/langs';
 import { MasterySchema } from '$/lib/Riot/schemes';
 import { Rank } from '$/lib/Riot/types';
 import { formatNumbersWithSuffix, getChampionsMap } from '$/lib/utilities';
 import { Locale } from 'discord.js';
 import { z } from 'zod';
-import { fixChampName, save } from '../utilities';
+import { fixChampName, saveHtml } from '../utilities';
 import { RankData } from './rank';
 
 export type TeamData = {
@@ -40,321 +38,311 @@ export type TeamData = {
     locale: Locale;
 };
 
+const WIDTH = 1600;
+const HEIGHT = 750;
+
 export default async (data: TeamData) => {
     const lang = getLocale(data.locale);
 
-    const background = new Background(
-        (await getAsset(AssetType.OTHER, 'background.png'))!
-    );
-    const backgroundSize = await background.getSize();
-
-    const text = `${data.abbreviation} | ${data.name}`.toUpperCase();
-    const name = new Text(
-        text,
-        {
-            x: 'center',
-            y: 40
-        },
-        {
-            width: backgroundSize.width,
-            height: 80
-        },
-        50,
-        Color.WHITE,
-        'middle'
-    );
-    background.addElement(name);
-
-    //NAME + ICON
-    const nameSize = await name.getTextSize();
-
-    const icon = new Image(
-        (await getAsset(AssetType.OTHER, `clash/${data.iconId}.png`))!,
-        {
-            x: Math.floor(
-                backgroundSize.width / 2 - nameSize.width / 2 - /*spacing*/ (100 + 20)
-            ),
-            y: 30
-        }
-    );
-    await icon.resize({
-        height: 100
-    });
-    background.addElement(icon);
-
-    //CAPTAIN
-    const captain = data.players.find(
-        (player) => player.role === 'CAPTAIN' && data.captain === player.puuid
-    )!;
+    // Load assets
+    const [backgroundAsset, clashIcon, levelAsset, crownAsset] = await Promise.all([
+        getAsset(AssetType.OTHER, 'background.png'),
+        getAsset(AssetType.OTHER, `clash/${data.iconId}.png`),
+        getAsset(AssetType.OTHER, 'level.png'),
+        getAsset(AssetType.OTHER, 'crown.png')
+    ]);
 
     const riotLang = getRiotLanguageFromDiscordLocale(data.locale);
     const champions = (await getChampionsMap(riotLang))!;
 
-    const renderPlayer = async (
-        container: Background | Blank,
+    // Get captain
+    const captain = data.players.find(
+        (player) => player.role === 'CAPTAIN' && data.captain === player.puuid
+    )!;
+    const nonCaptainPlayers = data.players.filter((p) => p.role === 'MEMBER');
+
+    // Load all profile icons and mastery images
+    const allPlayers = [captain, ...nonCaptainPlayers];
+    const profileIcons = await Promise.all(
+        allPlayers.map((p) =>
+            getAsset(AssetType.DDRAGON_PROFILEICON, `${p.profileIconId}.png`)
+        )
+    );
+
+    const masteryImages = await Promise.all(
+        allPlayers.map((player) =>
+            Promise.all(
+                player.masteries.map(async (mastery) => {
+                    const champion = champions.get(mastery.championId)!;
+                    return getAsset(
+                        AssetType.DDRAGON_CHAMPION,
+                        `${fixChampName(champion.id)}.png`
+                    );
+                })
+            )
+        )
+    );
+
+    // Helper to render a player
+    const renderPlayer = (
         player: TeamData['players'][number],
-        position: Position
-    ) => {
-        const containerSize = await container.getSize();
-        //NAME
-        const playerName = new Text(
-            `${player.gameName}#${player.tagLine}`,
-            {
-                x: position.x,
-                y: position.y
-            },
-            {
-                width: 400,
-                height: 40
-            },
-            30,
-            Color.WHITE,
-            'middle'
-        );
-        const playerNameSize = await playerName.getTextSize();
-        container.addElement(playerName);
-
-        //PROFILE ICON
-        const x = Math.floor(
-            position.x === 'center' ? containerSize.width / 2 : position.x
-        );
-        const textStart = Math.floor(x - playerNameSize.width / 2);
-        const iconBox = new Blank(
-            {
-                x: textStart - 120 - 15,
-                y: (position.y as number) - 15
-            },
-            {
-                width: 130,
-                height: 130
-            }
-        );
-        container.addElement(iconBox);
-
-        const icon = new Image(
-            (await getAsset(
-                AssetType.DDRAGON_PROFILEICON,
-                `${player.profileIconId}.png`
-            ))!,
-            {
-                x: 15,
-                y: 30
-            }
-        );
-        await icon.resize({
-            height: 100
-        });
-        iconBox.addElement(icon);
-
-        const lvlBackground = new Image((await getAsset(AssetType.OTHER, 'level.png'))!, {
-            x: 'center',
-            y: 30 - 26 / 2
-        });
-        await lvlBackground.resize({
-            height: 26
-        });
-        iconBox.addElement(lvlBackground);
-
-        const lvl = new Text(
-            player.level.toString(),
-            {
-                x: 'center',
-                y: 30 - 26 / 2
-            },
-            {
-                width: 130,
-                height: 26
-            },
-            20,
-            Color.WHITE,
-            'middle'
-        );
-        iconBox.addElement(lvl);
-
-        if (player.role === 'CAPTAIN') {
-            const captainIcon = new Image(
-                (await getAsset(AssetType.OTHER, 'crown.png'))!,
-                {
-                    x: 'center',
-                    y: 0
-                }
-            );
-            await captainIcon.resize({
-                width: 26
-            });
-            iconBox.addElement(captainIcon);
-        }
-
-        //RANK
-        const rank = new Text(
-            player.highestRank === null
-                ? lang.unranked
-                : [
-                      `${new Rank(player.highestRank).toString(lang)} `,
-                      {
-                          text: `(${
-                              lang.rank.queues[
-                                  player.highestRank
-                                      .queueType as keyof typeof lang.rank.queues
-                              ]
-                          })`,
-                          color: Color.WHITE
-                      }
-                  ],
-            {
-                x: textStart,
-                y: (position.y as number) + 40
-            },
-            {
-                width: 520,
-                height: 40
-            },
-            30,
-            player.highestRank === null ? Color.GRAY : Color[player.highestRank.tier],
-            'start',
-            'bold',
-            false,
-            0
-        );
-        container.addElement(rank);
-
-        //Position
-        const _position = new Text(
-            player.highestRank === null
-                ? lang.clash.positions[player.position]
-                : [
-                      `${lang.clash.positions[player.position]} (`,
-                      { text: `${player.highestRank.wins}W`, color: Color.GREEN },
-                      '/',
-                      { text: `${player.highestRank.losses}L`, color: Color.RED },
-                      ')'
-                  ],
-            {
-                x: textStart,
-                y: (position.y as number) + 80
-            },
-            {
-                width: 400,
-                height: 40
-            },
-            30,
-            Color.WHITE,
-            'start',
-            'bold',
-            false,
-            0
-        );
-        container.addElement(_position);
-
+        profileIcon: Buffer,
+        masteryImgs: (Buffer | null)[],
+        isCaptain: boolean
+    ): ElementNode => {
         const MASTERY_SIZE = 75;
-        const EXTEND = 40; // for level + points
-        const masteries = new Blank(
+
+        return column(
             {
-                x: 'center',
-                y: (position.y as number) + 120
+                alignItems: 'center',
+                gap: 5,
+                padding: 10
             },
-            {
-                width:
-                    MASTERY_SIZE * player.masteries.length +
-                    10 * (player.masteries.length - 1),
-                height: MASTERY_SIZE + EXTEND
-            }
+            // Player info row
+            row(
+                {
+                    alignItems: 'center',
+                    gap: 15
+                },
+                // Profile icon with level
+                div(
+                    {
+                        position: 'relative',
+                        width: 100,
+                        height: 130
+                    },
+                    // Crown for captain
+                    isCaptain
+                        ? div(
+                              {
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 37
+                              },
+                              img(crownAsset!, { width: 26, height: 26 })
+                          )
+                        : null,
+                    // Level badge
+                    div(
+                        {
+                            position: 'absolute',
+                            top: 17,
+                            left: 25,
+                            width: 50,
+                            height: 26,
+                            justifyContent: 'center',
+                            alignItems: 'center'
+                        },
+                        img(levelAsset!, { width: 50, height: 26 }),
+                        div(
+                            {
+                                position: 'absolute',
+                                width: 50,
+                                height: 26,
+                                justifyContent: 'center',
+                                alignItems: 'center'
+                            },
+                            text(
+                                { fontSize: 18, color: Color.WHITE, fontWeight: 700 },
+                                player.level.toString()
+                            )
+                        )
+                    ),
+                    // Profile icon
+                    div(
+                        {
+                            position: 'absolute',
+                            top: 30,
+                            left: 0
+                        },
+                        img(profileIcon, { width: 100, height: 100, borderRadius: 50 })
+                    )
+                ),
+                // Player details
+                column(
+                    {
+                        gap: 5
+                    },
+                    // Name
+                    text(
+                        { fontSize: 28, color: Color.WHITE, fontWeight: 700 },
+                        `${player.gameName}#${player.tagLine}`
+                    ),
+                    // Rank
+                    player.highestRank === null
+                        ? text(
+                              { fontSize: 26, color: Color.GRAY, fontWeight: 700 },
+                              lang.unranked
+                          )
+                        : row(
+                              { gap: 5 },
+                              text(
+                                  {
+                                      fontSize: 26,
+                                      color: Color[player.highestRank.tier],
+                                      fontWeight: 700
+                                  },
+                                  new Rank(player.highestRank).toString(lang)
+                              ),
+                              text(
+                                  { fontSize: 26, color: Color.WHITE, fontWeight: 700 },
+                                  ` (${
+                                      lang.rank.queues[
+                                          player.highestRank
+                                              .queueType as keyof typeof lang.rank.queues
+                                      ]
+                                  })`
+                              )
+                          ),
+                    // Position with W/L
+                    player.highestRank === null
+                        ? text(
+                              { fontSize: 24, color: Color.WHITE, fontWeight: 700 },
+                              lang.clash.positions[player.position]
+                          )
+                        : row(
+                              { gap: 3 },
+                              text(
+                                  { fontSize: 24, color: Color.WHITE, fontWeight: 700 },
+                                  `${lang.clash.positions[player.position]} (`
+                              ),
+                              text(
+                                  { fontSize: 24, color: Color.GREEN, fontWeight: 700 },
+                                  `${player.highestRank.wins}W`
+                              ),
+                              text(
+                                  { fontSize: 24, color: Color.WHITE, fontWeight: 700 },
+                                  '/'
+                              ),
+                              text(
+                                  { fontSize: 24, color: Color.RED, fontWeight: 700 },
+                                  `${player.highestRank.losses}L`
+                              ),
+                              text(
+                                  { fontSize: 24, color: Color.WHITE, fontWeight: 700 },
+                                  ')'
+                              )
+                          )
+                )
+            ),
+            // Masteries row
+            row(
+                {
+                    gap: 10,
+                    marginTop: 10
+                },
+                ...player.masteries.map((mastery, i) =>
+                    div(
+                        {
+                            position: 'relative',
+                            width: MASTERY_SIZE,
+                            height: MASTERY_SIZE + 25
+                        },
+                        // Champion image
+                        masteryImgs[i]
+                            ? img(masteryImgs[i]!, {
+                                  width: MASTERY_SIZE,
+                                  height: MASTERY_SIZE
+                              })
+                            : null,
+                        // Mastery level
+                        div(
+                            {
+                                position: 'absolute',
+                                bottom: 30,
+                                width: MASTERY_SIZE,
+                                justifyContent: 'center'
+                            },
+                            text(
+                                {
+                                    fontSize: 20,
+                                    color: Color.WHITE,
+                                    fontWeight: 700,
+                                    ...textOutline()
+                                },
+                                mastery.championLevel.toString()
+                            )
+                        ),
+                        // Points
+                        div(
+                            {
+                                position: 'absolute',
+                                bottom: 0,
+                                width: MASTERY_SIZE,
+                                justifyContent: 'center'
+                            },
+                            text(
+                                {
+                                    fontSize: 18,
+                                    color: Color.WHITE,
+                                    fontWeight: 700,
+                                    ...textOutline()
+                                },
+                                formatNumbersWithSuffix(mastery.championPoints)
+                            )
+                        )
+                    )
+                )
+            )
         );
-
-        masteries.addElements(
-            await player.masteries.asyncMap(async (mastery, index) => {
-                const blank = new Blank(
-                    {
-                        x: index * (MASTERY_SIZE + 10),
-                        y: 0
-                    },
-                    {
-                        width: MASTERY_SIZE,
-                        height: MASTERY_SIZE + 40
-                    }
-                );
-
-                const champion = champions.get(mastery.championId)!;
-                const championImage = await getAsset(
-                    AssetType.DDRAGON_CHAMPION,
-                    `${fixChampName(champion.id)}.png`
-                );
-
-                const image = new Image(championImage!, {
-                    x: 0,
-                    y: 0
-                });
-                await image.resize({
-                    width: MASTERY_SIZE,
-                    height: MASTERY_SIZE
-                });
-                blank.addElement(image);
-
-                const level = new Text(
-                    mastery.championLevel.toString(),
-                    {
-                        x: 'center',
-                        y: MASTERY_SIZE - 15
-                    },
-                    {
-                        width: MASTERY_SIZE,
-                        height: 20
-                    },
-                    20,
-                    Color.WHITE,
-                    'middle',
-                    'bold',
-                    true
-                );
-                blank.addElement(level);
-
-                const points = new Text(
-                    formatNumbersWithSuffix(mastery.championPoints),
-                    {
-                        x: 'center',
-                        y: MASTERY_SIZE + 5
-                    },
-                    {
-                        width: MASTERY_SIZE,
-                        height: 20
-                    },
-                    20,
-                    Color.WHITE,
-                    'middle',
-                    'bold',
-                    true
-                );
-                blank.addElement(points);
-
-                return blank;
-            })
-        );
-
-        container.addElement(masteries);
     };
 
-    await renderPlayer(background, captain, { x: 'center', y: 140 });
-
-    const beginY = 200;
-
-    const nonCaptainPlayers = data.players.filter((p) => p.role === 'MEMBER');
-    const maxHeight = backgroundSize.height - beginY - /*padding from bottom*/ 100;
-
-    for (let i = 0; i < nonCaptainPlayers.length; ++i) {
-        const blank = new Blank(
+    // Build element
+    const element = background(
+        backgroundAsset!,
+        { width: WIDTH, height: HEIGHT },
+        column(
             {
-                x: Math.floor(((i % 2) * backgroundSize.width) / 2),
-                y: Math.floor(beginY + ((i > 1 ? 1 : 0) * maxHeight) / 2)
+                width: WIDTH,
+                height: HEIGHT,
+                alignItems: 'center'
             },
-            {
-                width: Math.floor(backgroundSize.width / 2),
-                height: Math.floor(maxHeight / 2)
-            }
-        );
-        await renderPlayer(blank, nonCaptainPlayers[i], { x: 'center', y: 40 });
+            // Header with team name and icon
+            row(
+                {
+                    alignItems: 'center',
+                    gap: 20,
+                    marginTop: 20
+                },
+                img(clashIcon!, { width: 80, height: 80 }),
+                text(
+                    { fontSize: 50, color: Color.WHITE, fontWeight: 700 },
+                    `${data.abbreviation} | ${data.name}`.toUpperCase()
+                )
+            ),
+            // Captain
+            div(
+                { marginTop: 20 },
+                renderPlayer(captain, profileIcons[0]!, masteryImages[0], true)
+            ),
+            // Other players in a 2x2 grid
+            nonCaptainPlayers.length > 0
+                ? div(
+                      {
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          justifyContent: 'center',
+                          width: WIDTH,
+                          marginTop: 20
+                      },
+                      ...nonCaptainPlayers.map((player, i) =>
+                          div(
+                              {
+                                  width: WIDTH / 2,
+                                  justifyContent: 'center'
+                              },
+                              renderPlayer(
+                                  player,
+                                  profileIcons[i + 1]!,
+                                  masteryImages[i + 1],
+                                  false
+                              )
+                          )
+                      )
+                  )
+                : null
+        )
+    );
 
-        background.addElement(blank);
-    }
-
-    return save(background);
+    return saveHtml(element, { width: WIDTH, height: HEIGHT });
 };

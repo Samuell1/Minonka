@@ -1,10 +1,5 @@
 import { AssetType, getAsset, getRunesReforged, getSummonerSpells } from '$/lib/Assets';
 import { asyncExists } from '$/lib/fsAsync';
-import { Background } from '$/lib/Imaging/Background';
-import { Blank } from '$/lib/Imaging/Blank';
-import { Image } from '$/lib/Imaging/Image';
-import { Text } from '$/lib/Imaging/Text';
-import { Color } from '$/lib/Imaging/types';
 import { SpectatorSchema } from '$/lib/Riot/schemes';
 import { env } from '$/types/env';
 import { DePromise, FileResult, OmitUnion } from '$/types/types';
@@ -13,6 +8,20 @@ import fs from 'node:fs/promises';
 import { WebSocket } from 'ws';
 import { z } from 'zod';
 import { ExtractAssetResult } from './types';
+
+// HTML Imaging imports
+import {
+    render,
+    ElementNode,
+    Color,
+    img,
+    row,
+    column,
+    div,
+    text,
+    textOutline
+} from '$/lib/Imaging/html';
+export { Color } from '$/lib/Imaging/html';
 
 // Check if we're running in a worker environment (not on main server)
 const isRemoteWorker = process.env.WORKER_MODE === 'remote';
@@ -24,17 +33,21 @@ export const setWorkerWebSocket = (ws: WebSocket) => {
     workerWebSocket = ws;
 };
 
-export const save = async (image: Background): Promise<FileResult> => {
-    const renderedImage = await image.render();
+/**
+ * Saves an HTML element as a rendered PNG image
+ */
+export const saveHtml = async (
+    element: ElementNode,
+    options: { width: number; height: number }
+): Promise<FileResult> => {
+    const renderedImage = await render(element, options);
 
     if (isRemoteWorker) {
-        // Return base64 data for remote workers
         return {
             type: 'temp',
             data: renderedImage.toString('base64')
         };
     } else {
-        // Local mode - save to file and return path (backward compatibility)
         if (!(await asyncExists(env.CACHE_PATH))) {
             await fs.mkdir(env.CACHE_PATH, { recursive: true });
         }
@@ -43,6 +56,32 @@ export const save = async (image: Background): Promise<FileResult> => {
         const filePath = `${env.CACHE_PATH}/${name}.png`;
 
         await fs.writeFile(filePath, renderedImage);
+
+        return {
+            type: 'local',
+            path: filePath
+        };
+    }
+};
+
+/**
+ * Saves a pre-rendered buffer as a PNG image
+ */
+export const saveBuffer = async (buffer: Buffer): Promise<FileResult> => {
+    if (isRemoteWorker) {
+        return {
+            type: 'temp',
+            data: buffer.toString('base64')
+        };
+    } else {
+        if (!(await asyncExists(env.CACHE_PATH))) {
+            await fs.mkdir(env.CACHE_PATH, { recursive: true });
+        }
+
+        const name = crypto.randomBytes(16).toString('hex');
+        const filePath = `${env.CACHE_PATH}/${name}.png`;
+
+        await fs.writeFile(filePath, buffer);
 
         return {
             type: 'local',
@@ -98,27 +137,54 @@ export const getPersistant = (name: string): FileResult => {
     }
 };
 
-export const savePersistant = async (
-    image: Background,
+/**
+ * Saves an HTML element as a persistent PNG image
+ */
+export const savePersistantHtml = async (
+    element: ElementNode,
+    options: { width: number; height: number },
     name: string
 ): Promise<FileResult> => {
-    const renderedImage = await image.render();
+    const renderedImage = await render(element, options);
 
     if (isRemoteWorker) {
-        // Return base64 data for remote workers
         return {
             type: 'persistent',
             data: renderedImage.toString('base64'),
             name: name
         };
     } else {
-        // Local mode - save to file and return path (backward compatibility)
         if (!(await asyncExists(env.PERSISTANT_CACHE_PATH))) {
             await fs.mkdir(env.PERSISTANT_CACHE_PATH, { recursive: true });
         }
 
         const filePath = `${env.PERSISTANT_CACHE_PATH}/${name}`;
         await fs.writeFile(filePath, renderedImage);
+
+        return {
+            type: 'local',
+            path: filePath
+        };
+    }
+};
+
+/**
+ * Saves a pre-rendered buffer as a persistent PNG image
+ */
+export const savePersistantBuffer = async (buffer: Buffer, name: string): Promise<FileResult> => {
+    if (isRemoteWorker) {
+        return {
+            type: 'persistent',
+            data: buffer.toString('base64'),
+            name: name
+        };
+    } else {
+        if (!(await asyncExists(env.PERSISTANT_CACHE_PATH))) {
+            await fs.mkdir(env.PERSISTANT_CACHE_PATH, { recursive: true });
+        }
+
+        const filePath = `${env.PERSISTANT_CACHE_PATH}/${name}`;
+        await fs.writeFile(filePath, buffer);
 
         return {
             type: 'local',
@@ -135,38 +201,37 @@ export const toMMSS = (seconds: number) => {
     return `${minutes}:${remainingSeconds}`;
 };
 
-export const putSumms = async (
+/**
+ * Creates summoner spell elements for HTML rendering
+ */
+export const createSummonerSpells = async (
     player: {
         summoner1Id: number;
         summoner2Id: number;
     },
     summoners: ExtractAssetResult<typeof getSummonerSpells>,
-    playerHeight: number,
-    imageSpacing: number,
-    blank: Blank,
-    xOffset: number
-) => {
-    await Promise.all(
-        [player.summoner1Id, player.summoner2Id].map(async (summKey, idx) => {
+    size: number,
+    gap: number = 4
+): Promise<ElementNode> => {
+    const spellAssets = await Promise.all(
+        [player.summoner1Id, player.summoner2Id].map(async (summKey) => {
             const summoner = Object.values(summoners.data).find(
                 (summ) => summ.key === summKey
             )!;
-            const summ = new Image(
-                (await getAsset(AssetType.DDRAGON_SPELL, summoner.image.full))!,
-                {
-                    x: xOffset,
-                    y: Math.floor(idx * (playerHeight / 2 + imageSpacing))
-                }
-            );
-            await summ.resize({
-                width: Math.floor(playerHeight / 2) - imageSpacing
-            });
-            blank.addElement(summ);
+            return getAsset(AssetType.DDRAGON_SPELL, summoner.image.full);
         })
+    );
+
+    return column(
+        { gap },
+        ...spellAssets.map((asset) => img(asset!, { width: size, height: size }))
     );
 };
 
-export const putItems = async (
+/**
+ * Creates item row elements for HTML rendering
+ */
+export const createItems = async (
     player: {
         item0: number;
         item1: number;
@@ -177,78 +242,85 @@ export const putItems = async (
         item6: number;
         visionScore: number;
     },
-    begin: number,
     imageWidth: number,
     imageSpacing: number,
-    playerBlank: Blank,
-    reverse: boolean,
     itemBackground: ExtractAssetResult<typeof getAsset>,
-    imageBorder: number
-) => {
-    const items = new Blank(
-        {
-            x: begin,
-            y: 0
-        },
-        {
-            width: imageWidth * 7 + imageSpacing * 6,
-            height: imageWidth
-        }
+    imageBorder: number,
+    reverse: boolean = false
+): Promise<ElementNode> => {
+    const itemIds = [
+        player.item0,
+        player.item1,
+        player.item2,
+        player.item3,
+        player.item4,
+        player.item5,
+        player.item6
+    ];
+
+    const itemAssets = await Promise.all(
+        itemIds.map((itemId) =>
+            itemId === 0 ? null : getAsset(AssetType.DDRAGON_ITEM, itemId + '.png')
+        )
     );
-    playerBlank.addElement(items);
-    if (reverse) {
-        items.setReverse();
-    }
 
-    //items
-    for (let i = 0 as 0 | 1 | 2 | 3 | 4 | 5 | 6; i < 7; ++i) {
-        const item = player[`item${i}`];
-        const background = new Image(itemBackground, {
-            x: i * (imageWidth + imageSpacing),
-            y: 0
-        });
-        await background.resize({
-            width: imageWidth,
-            height: imageWidth
-        });
-        items.addElement(background);
-
-        if (item === 0) continue;
-
-        const itemImage = new Image(
-            (await getAsset(AssetType.DDRAGON_ITEM, item + '.png'))!,
+    const items = itemIds.map((itemId, i) => {
+        const isWard = i === 6;
+        return div(
             {
-                x: i * (imageWidth + imageSpacing) + imageBorder,
-                y: imageBorder
-            }
+                position: 'relative',
+                width: imageWidth,
+                height: imageWidth
+            },
+            // Background
+            img(itemBackground!, { width: imageWidth, height: imageWidth }),
+            // Item image (if exists)
+            itemAssets[i]
+                ? div(
+                      {
+                          position: 'absolute',
+                          top: imageBorder,
+                          left: imageBorder
+                      },
+                      img(itemAssets[i]!, {
+                          width: imageWidth - imageBorder * 2,
+                          height: imageWidth - imageBorder * 2
+                      })
+                  )
+                : null,
+            // Vision score on ward slot
+            isWard && itemAssets[i]
+                ? div(
+                      {
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: imageWidth,
+                          height: imageWidth,
+                          justifyContent: 'center',
+                          alignItems: 'center'
+                      },
+                      text(
+                          {
+                              fontSize: 30,
+                              color: Color.WHITE,
+                              fontWeight: 700,
+                              ...textOutline()
+                          },
+                          player.visionScore
+                      )
+                  )
+                : null
         );
-        await itemImage.resize({
-            width: imageWidth - imageBorder * 2,
-            height: imageWidth - imageBorder * 2
-        });
-        items.addElement(itemImage);
+    });
 
-        //add vision score
-        if (i === 6) {
-            const vision = new Text(
-                player.visionScore.toString(),
-                {
-                    x: i * (imageWidth + imageSpacing),
-                    y: 0
-                },
-                {
-                    width: imageWidth,
-                    height: imageWidth
-                },
-                30,
-                Color.WHITE,
-                'middle',
-                'bold',
-                true
-            );
-            items.addElement(vision);
-        }
-    }
+    return row(
+        {
+            gap: imageSpacing,
+            flexDirection: reverse ? 'row-reverse' : 'row'
+        },
+        ...items
+    );
 };
 
 export const fixChampName = (champName: string) => {

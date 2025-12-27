@@ -52,7 +52,7 @@ export function text(
     }
 
     // Multi-colored text
-    const children = content.map((segment, i) => {
+    const children = content.map((segment) => {
         if (typeof segment === 'string' || typeof segment === 'number') {
             return span({ ...style }, segment);
         }
@@ -231,6 +231,8 @@ export function textOutline(color: string = '#000000', width: number = 2): CSSPr
     ];
 
     return {
-        textShadow: offsets.map(([x, y]) => `${x * width}px ${y * width}px 0 ${color}`).join(', ')
+        textShadow: offsets
+            .map(([x, y]) => `${x * width}px ${y * width}px 0 ${color}`)
+            .join(', ')
     };
 }

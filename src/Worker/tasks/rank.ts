@@ -1,5 +1,5 @@
 import { AssetType, getAsset } from '$/lib/Assets';
-import { background, center, column, div, img, row, text, textOutline } from '$/lib/Imaging/html';
+import { background, column, div, img, row, text } from '$/lib/Imaging/html';
 import { Color } from '$/lib/Imaging/html/types';
 import { _Tier, _Rank, deCapitalize, Rank } from '$/lib/Riot/types';
 import { getLocale } from '$/lib/langs';
@@ -47,7 +47,9 @@ export default async (data: RankData) => {
 
     // Load rank icons
     const rankIcons = await Promise.all(
-        ranks.map((rank) => getAsset(AssetType.RANK, 'Rank=' + deCapitalize(rank.tier) + '.png'))
+        ranks.map((rank) =>
+            getAsset(AssetType.RANK, 'Rank=' + deCapitalize(rank.tier) + '.png')
+        )
     );
 
     // Build the element tree

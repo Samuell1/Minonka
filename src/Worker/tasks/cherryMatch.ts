@@ -90,22 +90,28 @@ export default async (data: CherryMatchData) => {
     const riotLocale = getRiotLanguageFromDiscordLocale(data.locale);
 
     // Load assets
-    const [backgroundAsset, itemBackgroundAsset, swordAsset, coinsAsset, augmentsData, summoners] =
-        await Promise.all([
-            getAsset(AssetType.OTHER, 'background.png'),
-            getAsset(AssetType.OTHER, 'itemBackground.png'),
-            getAsset(AssetType.OTHER, 'sword.png'),
-            getAsset(AssetType.OTHER, 'coins.png'),
-            getAugments(riotLocale),
-            getSummonerSpells(riotLocale)
-        ]);
+    const [
+        backgroundAsset,
+        itemBackgroundAsset,
+        swordAsset,
+        coinsAsset,
+        augmentsData,
+        summoners
+    ] = await Promise.all([
+        getAsset(AssetType.OTHER, 'background.png'),
+        getAsset(AssetType.OTHER, 'itemBackground.png'),
+        getAsset(AssetType.OTHER, 'sword.png'),
+        getAsset(AssetType.OTHER, 'coins.png'),
+        getAugments(riotLocale),
+        getSummonerSpells(riotLocale)
+    ]);
 
     const teamPosition = getArenaSubTeamPosition(data, data.myPuuid);
 
     // Organize players into teams
-    const teams: CherryMatchData['info']['participants'][] = Array.from({ length: 8 }).map(
-        () => []
-    );
+    const teams: CherryMatchData['info']['participants'][] = Array.from({
+        length: 8
+    }).map(() => []);
     for (const participant of data.info.participants) {
         teams[participant.playerSubteamId - 1].push(participant);
     }
@@ -131,7 +137,9 @@ export default async (data: CherryMatchData) => {
     );
 
     // Load player assets for all teams
-    const loadPlayerAssets = async (player: CherryMatchData['info']['participants'][number]) => {
+    const loadPlayerAssets = async (
+        player: CherryMatchData['info']['participants'][number]
+    ) => {
         const spell1 = Object.values(summoners!.data).find(
             (s) => s.key === player.summoner1Id
         )!;
@@ -149,13 +157,21 @@ export default async (data: CherryMatchData) => {
         ];
 
         const [championImg, spell1Img, spell2Img, ...augmentImgs] = await Promise.all([
-            getAsset(AssetType.DDRAGON_CHAMPION, fixChampName(player.championName) + '.png'),
+            getAsset(
+                AssetType.DDRAGON_CHAMPION,
+                fixChampName(player.championName) + '.png'
+            ),
             getAsset(AssetType.DDRAGON_SPELL, spell1.image.full),
             getAsset(AssetType.DDRAGON_SPELL, spell2.image.full),
             ...augmentIds.map(async (augId) => {
-                const augmentData = augmentsData!.augments.find((aug) => aug.id === augId);
+                const augmentData = augmentsData!.augments.find(
+                    (aug) => aug.id === augId
+                );
                 if (!augmentData) return null;
-                return getAsset(AssetType.COMMUNITY_DDRAGON, `game/${augmentData.iconLarge}`);
+                return getAsset(
+                    AssetType.COMMUNITY_DDRAGON,
+                    `game/${augmentData.iconLarge}`
+                );
             })
         ]);
 
@@ -191,7 +207,8 @@ export default async (data: CherryMatchData) => {
         isRightSide: boolean,
         isHighlighted: boolean
     ) => {
-        const { player, championImg, spell1Img, spell2Img, augmentImgs, itemImgs } = assets;
+        const { player, championImg, spell1Img, spell2Img, augmentImgs, itemImgs } =
+            assets;
         const nameColor = isHighlighted ? Color.YELLOW : Color.WHITE;
 
         return row(
@@ -256,7 +273,10 @@ export default async (data: CherryMatchData) => {
                     ...augmentImgs.map((augImg) =>
                         div(
                             { position: 'relative', width: AUG_SIZE, height: AUG_SIZE },
-                            img(itemBackgroundAsset!, { width: AUG_SIZE, height: AUG_SIZE }),
+                            img(itemBackgroundAsset!, {
+                                width: AUG_SIZE,
+                                height: AUG_SIZE
+                            }),
                             augImg
                                 ? div(
                                       { position: 'absolute', top: 2, left: 2 },
@@ -285,7 +305,10 @@ export default async (data: CherryMatchData) => {
                     ...itemImgs.map((itemImg, i) =>
                         div(
                             { position: 'relative', width: ITEM_SIZE, height: ITEM_SIZE },
-                            img(itemBackgroundAsset!, { width: ITEM_SIZE, height: ITEM_SIZE }),
+                            img(itemBackgroundAsset!, {
+                                width: ITEM_SIZE,
+                                height: ITEM_SIZE
+                            }),
                             itemImg
                                 ? div(
                                       { position: 'absolute', top: 2, left: 2 },
@@ -402,6 +425,12 @@ export default async (data: CherryMatchData) => {
         );
     };
 
+    // Layout constants
+    const PADDING = 20;
+    const HEADER_HEIGHT = 130;
+    const FOOTER_HEIGHT = 40;
+    const TEAMS_HEIGHT = HEIGHT - PADDING * 2 - HEADER_HEIGHT - FOOTER_HEIGHT;
+
     // Build element
     const element = background(
         backgroundAsset!,
@@ -410,13 +439,15 @@ export default async (data: CherryMatchData) => {
             {
                 width: WIDTH,
                 height: HEIGHT,
-                padding: 20
+                padding: PADDING
             },
             // Center stats
             row(
                 {
-                    width: WIDTH - 40,
+                    width: WIDTH - PADDING * 2,
+                    height: HEADER_HEIGHT,
                     justifyContent: 'center',
+                    alignItems: 'center',
                     gap: 30
                 },
                 column(
@@ -442,31 +473,33 @@ export default async (data: CherryMatchData) => {
             // Teams layout: 4 on left, 4 on right
             row(
                 {
-                    width: WIDTH - 40,
-                    flex: 1,
-                    marginTop: 10
+                    width: WIDTH - PADDING * 2,
+                    height: TEAMS_HEIGHT
                 },
                 // Left 4 teams
                 column(
-                    { width: (WIDTH - 40) / 2, gap: 5 },
+                    { width: (WIDTH - PADDING * 2) / 2, height: TEAMS_HEIGHT, gap: 5 },
                     ...teams
                         .slice(0, 4)
                         .map((_, i) => renderTeam(i, teamIcons[i], teamAssets[i], false))
                 ),
                 // Right 4 teams
                 column(
-                    { width: (WIDTH - 40) / 2, gap: 5 },
+                    { width: (WIDTH - PADDING * 2) / 2, height: TEAMS_HEIGHT, gap: 5 },
                     ...teams
                         .slice(4, 8)
-                        .map((_, i) => renderTeam(i + 4, teamIcons[i + 4], teamAssets[i + 4], true))
+                        .map((_, i) =>
+                            renderTeam(i + 4, teamIcons[i + 4], teamAssets[i + 4], true)
+                        )
                 )
             ),
             // Date footer
             div(
                 {
-                    width: WIDTH - 40,
+                    width: WIDTH - PADDING * 2,
+                    height: FOOTER_HEIGHT,
                     justifyContent: 'center',
-                    marginTop: 5
+                    alignItems: 'center'
                 },
                 text(
                     { fontSize: 24, color: Color.WHITE, fontWeight: 400 },

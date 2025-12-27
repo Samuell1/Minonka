@@ -136,7 +136,10 @@ export default async (data: MatchData) => {
             bans.map(async (ban) => {
                 const champion = champions!.get(ban.championId!);
                 return champion
-                    ? getAsset(AssetType.DDRAGON_CHAMPION, fixChampName(champion.id) + '.png')
+                    ? getAsset(
+                          AssetType.DDRAGON_CHAMPION,
+                          fixChampName(champion.id) + '.png'
+                      )
                     : getAsset(AssetType.DDRAGON_PROFILEICON, '29.png');
             })
         );
@@ -163,22 +166,28 @@ export default async (data: MatchData) => {
             (s) => s.key === player.summoner2Id
         )!;
 
-        const [championImg, primaryRuneImg, secondaryRuneImg, spell1Img, spell2Img, ...itemImgs] =
-            await Promise.all([
-                getAsset(
-                    AssetType.DDRAGON_CHAMPION,
-                    fixChampName(player.championName) + '.png'
-                ),
-                getAsset(AssetType.DDRAGON_IMG, mainRune.icon),
-                getAsset(AssetType.DDRAGON_IMG, secondaryTree.icon),
-                getAsset(AssetType.DDRAGON_SPELL, spell1.image.full),
-                getAsset(AssetType.DDRAGON_SPELL, spell2.image.full),
-                ...([0, 1, 2, 3, 4, 5, 6] as const).map((i) =>
-                    player[`item${i}`] === 0
-                        ? null
-                        : getAsset(AssetType.DDRAGON_ITEM, player[`item${i}`] + '.png')
-                )
-            ]);
+        const [
+            championImg,
+            primaryRuneImg,
+            secondaryRuneImg,
+            spell1Img,
+            spell2Img,
+            ...itemImgs
+        ] = await Promise.all([
+            getAsset(
+                AssetType.DDRAGON_CHAMPION,
+                fixChampName(player.championName) + '.png'
+            ),
+            getAsset(AssetType.DDRAGON_IMG, mainRune.icon),
+            getAsset(AssetType.DDRAGON_IMG, secondaryTree.icon),
+            getAsset(AssetType.DDRAGON_SPELL, spell1.image.full),
+            getAsset(AssetType.DDRAGON_SPELL, spell2.image.full),
+            ...([0, 1, 2, 3, 4, 5, 6] as const).map((i) =>
+                player[`item${i}`] === 0
+                    ? null
+                    : getAsset(AssetType.DDRAGON_ITEM, player[`item${i}`] + '.png')
+            )
+        ]);
 
         return {
             player,
@@ -262,8 +271,14 @@ export default async (data: MatchData) => {
         isRightTeam: boolean,
         isHighlighted: boolean
     ) => {
-        const { player, championImg, primaryRuneImg, secondaryRuneImg, spell1Img, spell2Img } =
-            assets;
+        const {
+            player,
+            championImg,
+            primaryRuneImg,
+            secondaryRuneImg,
+            spell1Img,
+            spell2Img
+        } = assets;
         const nameColor = isHighlighted ? Color.YELLOW : Color.WHITE;
 
         return row(
@@ -379,11 +394,22 @@ export default async (data: MatchData) => {
                     banImg
                         ? img(banImg, { width: 55, height: 55, borderRadius: 8 })
                         : null,
-                    img(banXAsset!, { width: 55, height: 55, position: 'absolute', top: 0 })
+                    img(banXAsset!, {
+                        width: 55,
+                        height: 55,
+                        position: 'absolute',
+                        top: 0
+                    })
                 )
             )
         );
     };
+
+    // Layout constants
+    const PADDING = 30;
+    const HEADER_HEIGHT = 180;
+    const FOOTER_HEIGHT = 50;
+    const TEAMS_HEIGHT = HEIGHT - PADDING * 2 - HEADER_HEIGHT - FOOTER_HEIGHT;
 
     // Build element
     const element = background(
@@ -393,14 +419,15 @@ export default async (data: MatchData) => {
             {
                 width: WIDTH,
                 height: HEIGHT,
-                padding: 30
+                padding: PADDING
             },
             // Header: Bans - Stats - Bans
             row(
                 {
-                    width: WIDTH - 60,
+                    width: WIDTH - PADDING * 2,
+                    height: HEADER_HEIGHT,
                     justifyContent: 'space-between',
-                    alignItems: 'flex-start'
+                    alignItems: 'center'
                 },
                 // Team 1 bans (reversed to show from right)
                 renderBans(team1Bans, true),
@@ -448,16 +475,16 @@ export default async (data: MatchData) => {
             // Teams
             row(
                 {
-                    width: WIDTH - 60,
-                    flex: 1,
-                    marginTop: 15,
+                    width: WIDTH - PADDING * 2,
+                    height: TEAMS_HEIGHT,
                     gap: 30
                 },
                 // Team 1
                 column(
                     {
-                        width: (WIDTH - 60 - 30) / 2,
-                        justifyContent: 'space-around'
+                        width: (WIDTH - PADDING * 2 - 30) / 2,
+                        height: TEAMS_HEIGHT,
+                        justifyContent: 'space-between'
                     },
                     ...team1Assets.map((assets) =>
                         renderPlayer(assets, false, assets.player.puuid === data.myPuuid)
@@ -466,8 +493,9 @@ export default async (data: MatchData) => {
                 // Team 2
                 column(
                     {
-                        width: (WIDTH - 60 - 30) / 2,
-                        justifyContent: 'space-around'
+                        width: (WIDTH - PADDING * 2 - 30) / 2,
+                        height: TEAMS_HEIGHT,
+                        justifyContent: 'space-between'
                     },
                     ...team2Assets.map((assets) =>
                         renderPlayer(assets, true, assets.player.puuid === data.myPuuid)
@@ -477,9 +505,10 @@ export default async (data: MatchData) => {
             // Date footer
             div(
                 {
-                    width: WIDTH - 60,
+                    width: WIDTH - PADDING * 2,
+                    height: FOOTER_HEIGHT,
                     justifyContent: 'center',
-                    marginTop: 10
+                    alignItems: 'center'
                 },
                 text(
                     { fontSize: 28, color: Color.WHITE, fontWeight: 400 },

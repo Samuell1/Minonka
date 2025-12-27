@@ -5,7 +5,7 @@ import {
     getChallenges,
     getRiotLanguageFromDiscordLocale
 } from '$/lib/Assets';
-import { background, center, column, div, img, row, text } from '$/lib/Imaging/html';
+import { background, column, div, img, row, text } from '$/lib/Imaging/html';
 import { Color } from '$/lib/Imaging/html/types';
 import { getLocale, replacePlaceholders } from '$/lib/langs';
 import { Rank } from '$/lib/Riot/types';
@@ -45,9 +45,12 @@ export default async (data: SummonerData) => {
             AssetType.BANNER,
             highestRank!.getTier().toLowerCase() + '_banner.png'
         );
-        bannerAsset = asset ?? (await getAsset(AssetType.BANNER, '1_unranked_banner.png'))!;
+        bannerAsset =
+            asset ?? (await getAsset(AssetType.BANNER, '1_unranked_banner.png'))!;
     } else {
-        const bannerName = banners.find((b) => b.split('_')[0] === data.banner.toString())!;
+        const bannerName = banners.find(
+            (b) => b.split('_')[0] === data.banner.toString()
+        )!;
         bannerAsset = bannerName
             ? (await getAsset(AssetType.BANNER, bannerName))!
             : (await getAsset(AssetType.BANNER, '1_unranked_banner.png'))!;
@@ -87,7 +90,9 @@ export default async (data: SummonerData) => {
         const challenges = await getChallenges(lolLang);
 
         if (!challenges) {
-            throw new Error(replacePlaceholders(lang.assets.error, lang.assets.challenges));
+            throw new Error(
+                replacePlaceholders(lang.assets.error, lang.assets.challenges)
+            );
         }
 
         const challengeId = parseInt(data.titleId.substring(0, 6));
@@ -107,7 +112,9 @@ export default async (data: SummonerData) => {
     // Load challenge images
     const challengeData = data.challenges
         .map((challengeId) => {
-            const challenge = data.userChallenges.find((c) => c.challengeId === challengeId);
+            const challenge = data.userChallenges.find(
+                (c) => c.challengeId === challengeId
+            );
             if (!challenge) return null;
             return { id: challengeId, level: challenge.level };
         })

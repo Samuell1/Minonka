@@ -18,7 +18,7 @@ import {
     toMMSS,
     saveHtml
 } from '../utilities';
-import { background, column, div, img, row, text, textOutline } from '$/lib/Imaging/html';
+import { background, column, img, row, text, textOutline } from '$/lib/Imaging/html';
 import { Color } from '$/lib/Imaging/html/types';
 import { getChampionsMap } from '$/lib/utilities';
 
@@ -37,13 +37,14 @@ export default async (data: SpectatorData) => {
     const riotLocale = getRiotLanguageFromDiscordLocale(data.locale);
 
     // Load assets
-    const [backgroundAsset, maps, runesReforged, summoners, champions] = await Promise.all([
-        getAsset(AssetType.OTHER, 'background.png'),
-        getMaps(riotLocale),
-        getRunesReforged(riotLocale),
-        getSummonerSpells(riotLocale),
-        getChampionsMap(riotLocale)
-    ]);
+    const [backgroundAsset, maps, runesReforged, summoners, champions] =
+        await Promise.all([
+            getAsset(AssetType.OTHER, 'background.png'),
+            getMaps(riotLocale),
+            getRunesReforged(riotLocale),
+            getSummonerSpells(riotLocale),
+            getChampionsMap(riotLocale)
+        ]);
 
     const map = maps!.data[data.mapId.toString()];
 
@@ -105,8 +106,14 @@ export default async (data: SpectatorData) => {
         isRightTeam: boolean,
         isHighlighted: boolean
     ) => {
-        const { player, championImg, primaryRuneImg, secondaryRuneImg, spell1Img, spell2Img } =
-            assets;
+        const {
+            player,
+            championImg,
+            primaryRuneImg,
+            secondaryRuneImg,
+            spell1Img,
+            spell2Img
+        } = assets;
         const [riotIdGameName, riotIdTagline] = player.riotId.split('#');
 
         const nameColor = isHighlighted ? Color.YELLOW : Color.WHITE;
@@ -135,7 +142,10 @@ export default async (data: SpectatorData) => {
                 ),
                 row(
                     { gap: 5 },
-                    img(secondaryRuneImg!, { width: RUNE_SIZE - 10, height: RUNE_SIZE - 10 }),
+                    img(secondaryRuneImg!, {
+                        width: RUNE_SIZE - 10,
+                        height: RUNE_SIZE - 10
+                    }),
                     img(spell2Img!, { width: SPELL_SIZE, height: SPELL_SIZE })
                 )
             ),
@@ -167,6 +177,11 @@ export default async (data: SpectatorData) => {
         );
     };
 
+    // Layout constants
+    const PADDING = 40;
+    const HEADER_HEIGHT = 100;
+    const TEAMS_HEIGHT = HEIGHT - PADDING * 2 - HEADER_HEIGHT;
+
     // Build element
     const element = background(
         backgroundAsset!,
@@ -175,13 +190,13 @@ export default async (data: SpectatorData) => {
             {
                 width: WIDTH,
                 height: HEIGHT,
-                padding: 40
+                padding: PADDING
             },
             // Header
             row(
                 {
-                    width: WIDTH - 80,
-                    height: 80,
+                    width: WIDTH - PADDING * 2,
+                    height: HEADER_HEIGHT,
                     justifyContent: 'space-between',
                     alignItems: 'center'
                 },
@@ -219,16 +234,16 @@ export default async (data: SpectatorData) => {
             // Teams
             row(
                 {
-                    width: WIDTH - 80,
-                    flex: 1,
-                    marginTop: 20,
+                    width: WIDTH - PADDING * 2,
+                    height: TEAMS_HEIGHT,
                     gap: 40
                 },
                 // Team 1 (Blue)
                 column(
                     {
-                        width: (WIDTH - 80 - 40) / 2,
-                        justifyContent: 'space-around'
+                        width: (WIDTH - PADDING * 2 - 40) / 2,
+                        height: TEAMS_HEIGHT,
+                        justifyContent: 'space-between'
                     },
                     ...team1Assets.map((assets) =>
                         renderPlayer(assets, false, assets.player.puuid === data.puuid)
@@ -237,8 +252,9 @@ export default async (data: SpectatorData) => {
                 // Team 2 (Red)
                 column(
                     {
-                        width: (WIDTH - 80 - 40) / 2,
-                        justifyContent: 'space-around'
+                        width: (WIDTH - PADDING * 2 - 40) / 2,
+                        height: TEAMS_HEIGHT,
+                        justifyContent: 'space-between'
                     },
                     ...team2Assets.map((assets) =>
                         renderPlayer(assets, true, assets.player.puuid === data.puuid)

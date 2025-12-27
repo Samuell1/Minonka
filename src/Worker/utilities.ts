@@ -171,7 +171,10 @@ export const savePersistantHtml = async (
 /**
  * Saves a pre-rendered buffer as a persistent PNG image
  */
-export const savePersistantBuffer = async (buffer: Buffer, name: string): Promise<FileResult> => {
+export const savePersistantBuffer = async (
+    buffer: Buffer,
+    name: string
+): Promise<FileResult> => {
     if (isRemoteWorker) {
         return {
             type: 'persistent',

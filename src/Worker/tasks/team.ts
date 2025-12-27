@@ -1,5 +1,5 @@
 import { AssetType, getAsset, getRiotLanguageFromDiscordLocale } from '$/lib/Assets';
-import { background, center, column, div, img, row, text, textOutline } from '$/lib/Imaging/html';
+import { background, column, div, img, row, text, textOutline } from '$/lib/Imaging/html';
 import { Color } from '$/lib/Imaging/html/types';
 import { ElementNode } from '$/lib/Imaging/html';
 import { getLocale } from '$/lib/langs';

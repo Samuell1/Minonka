@@ -44,7 +44,10 @@ async function loadFonts(): Promise<Font[]> {
 /**
  * Renders an element tree to a PNG buffer
  */
-export async function render(element: ElementNode, options: RenderOptions): Promise<Buffer> {
+export async function render(
+    element: ElementNode,
+    options: RenderOptions
+): Promise<Buffer> {
     const fonts = await loadFonts();
 
     // Convert element to SVG using satori
@@ -59,8 +62,7 @@ export async function render(element: ElementNode, options: RenderOptions): Prom
     // Convert SVG to PNG using resvg
     const resvg = new Resvg(svg, {
         fitTo: {
-            mode: 'width',
-            value: options.width
+            mode: 'original'
         }
     });
 

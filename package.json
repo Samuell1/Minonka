@@ -17,6 +17,8 @@
         "format": "prettier --write .",
         "lint": "prettier --check . && eslint src",
         "check": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
         "migration:create": "./script/createMigration.sh",
         "migrate": "tsx ./script/runMigration.ts",
         "prepare": "husky"
@@ -56,7 +58,8 @@
         "tsc-alias": "^1.8.10",
         "tsx": "^4.19.2",
         "typescript": "^5.7.3",
-        "typescript-eslint": "^8.23.0"
+        "typescript-eslint": "^8.23.0",
+        "vitest": "^4.0.16"
     },
     "pnpm": {
         "onlyBuiltDependencies": [
